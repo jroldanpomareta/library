@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Biblioteca – API REST (Segura)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; color: #333; }
+    header { background: #1a73e8; color: white; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.3rem; }
+    #user-info { font-size: 0.9rem; display: flex; align-items: center; gap: 12px; }
+    #btn-logout { background: rgba(255,255,255,0.2); border: none; color: white; padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    #btn-logout:hover { background: rgba(255,255,255,0.3); }
+    nav { background: white; border-bottom: 1px solid #ddd; display: flex; gap: 4px; padding: 0 24px; }
+    nav button { padding: 12px 20px; border: none; background: none; cursor: pointer; font-size: 0.95rem; border-bottom: 3px solid transparent; color: #555; }
+    nav button.active { border-bottom-color: #1a73e8; color: #1a73e8; font-weight: 600; }
+    nav button:hover { background: #f5f5f5; }
+    main { max-width: 1100px; margin: 24px auto; padding: 0 24px; }
+    .card { background: white; border-radius: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); padding: 24px; margin-bottom: 20px; }
+    .card h2 { font-size: 1.1rem; margin-bottom: 16px; color: #1a73e8; }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+    .form-row input, .form-row select { flex: 1; min-width: 160px; padding: 8px 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.9rem; }
+    .btn { padding: 8px 18px; border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; margin-right: 4px; }
+    .btn-primary { background: #1a73e8; color: white; }
+    .btn-primary:hover { background: #1558b0; }
+    .btn-danger { background: #e53935; color: white; }
+    .btn-danger:hover { background: #b71c1c; }
+    .btn-success { background: #43a047; color: white; }
+    .btn-success:hover { background: #2e7d32; }
+    .btn-warning { background: #fb8c00; color: white; }
+    .btn-warning:hover { background: #e65100; }
+    .btn-sm { padding: 4px 10px; font-size: 0.82rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+    th { background: #f5f5f5; text-align: left; padding: 10px 12px; border-bottom: 2px solid #ddd; }
+    td { padding: 10px 12px; border-bottom: 1px solid #eee; vertical-align: middle; }
+    tr:hover td { background: #fafafa; }
+    .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 0.78rem; font-weight: 600; }
+    .badge-active { background: #e8f5e9; color: #2e7d32; }
+    .badge-returned { background: #e3f2fd; color: #1565c0; }
+    .badge-overdue { background: #ffebee; color: #c62828; }
+    .badge-available { background: #e8f5e9; color: #2e7d32; }
+    .badge-unavailable { background: #ffebee; color: #c62828; }
+    .msg { padding: 10px 14px; border-radius: 4px; margin-bottom: 16px; font-size: 0.9rem; min-height: 20px; }
+    .msg-error { background: #ffebee; color: #c62828; border: 1px solid #ef9a9a; }
+    .msg-success { background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; }
+    #login-screen { max-width: 380px; margin: 80px auto; }
+    #login-screen .card { padding: 32px; }
+    #login-screen h2 { text-align: center; margin-bottom: 24px; color: #1a73e8; }
+    #login-screen input { width: 100%; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.95rem; }
+    #login-screen .btn { width: 100%; padding: 12px; font-size: 1rem; }
+    .section { display: none; }
+    .section.active { display: block; }
+    .actions { display: flex; gap: 4px; flex-wrap: wrap; }
+    .empty { color: #999; font-style: italic; padding: 20px 0; text-align: center; }
+    .edit-row { display: none; background: #f9f9f9; }
+    .edit-row td { padding: 12px; }
+    .edit-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .edit-form input, .edit-form select { padding: 6px 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 0.88rem; flex: 1; min-width: 120px; }
+  </style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="card">
+    <h2>📚 Biblioteca</h2>
+    <div id="login-msg" class="msg"></div>
+    <input type="text" id="login-user" placeholder="Usuario" value="admin">
+    <input type="password" id="login-pass" placeholder="Contraseña" value="admin123">
+    <button class="btn btn-primary" onclick="login()">Iniciar sesión</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" style="display:none">
+  <header>
+    <h1>📚 Gestión de Biblioteca</h1>
+    <div id="user-info">
+      <span id="username-display"></span>
+      <button id="btn-logout" onclick="logout()">Cerrar sesión</button>
+    </div>
+  </header>
+  <nav>
+    <button class="active" onclick="showSection('books', this)">Libros</button>
+    <button onclick="showSection('authors', this)">Autores</button>
+    <button onclick="showSection('categories', this)">Categorías</button>
+    <button onclick="showSection('loans', this)">Préstamos</button>
+  </nav>
+  <main>
+
+    <!-- BOOKS -->
+    <div id="section-books" class="section active">
+      <div class="card">
+        <h2>Añadir libro</h2>
+        <div id="book-msg" class="msg"></div>
+        <div class="form-row">
+          <input id="book-title" placeholder="Título *">
+          <input id="book-isbn" placeholder="ISBN *">
+          <input id="book-year" placeholder="Año" type="number">
+        </div>
+        <div class="form-row">
+          <input id="book-stock" placeholder="Stock total *" type="number" min="1">
+          <select id="book-category"><option value="">-- Categoría (opcional) --</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="createBook()">Añadir libro</button>
+      </div>
+      <div class="card">
+        <h2>Libros</h2>
+        <table>
+          <thead><tr><th>Título</th><th>ISBN</th><th>Año</th><th>Categoría</th><th>Stock</th><th>Acciones</th></tr></thead>
+          <tbody id="books-table"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- AUTHORS -->
+    <div id="section-authors" class="section">
+      <div class="card">
+        <h2>Añadir autor</h2>
+        <div id="author-msg" class="msg"></div>
+        <div class="form-row">
+          <input id="author-first" placeholder="Nombre *">
+          <input id="author-last" placeholder="Apellidos *">
+          <input id="author-nationality" placeholder="Nacionalidad">
+        </div>
+        <button class="btn btn-primary" onclick="createAuthor()">Añadir autor</button>
+      </div>
+      <div class="card">
+        <h2>Autores</h2>
+        <table>
+          <thead><tr><th>Nombre</th><th>Apellidos</th><th>Nacionalidad</th><th>Acciones</th></tr></thead>
+          <tbody id="authors-table"><tr><td colspan="4" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CATEGORIES -->
+    <div id="section-categories" class="section">
+      <div class="card">
+        <h2>Añadir categoría</h2>
+        <div id="category-msg" class="msg"></div>
+        <div class="form-row">
+          <input id="cat-name" placeholder="Nombre *">
+          <input id="cat-desc" placeholder="Descripción">
+        </div>
+        <button class="btn btn-primary" onclick="createCategory()">Añadir categoría</button>
+      </div>
+      <div class="card">
+        <h2>Categorías</h2>
+        <table>
+          <thead><tr><th>Nombre</th><th>Descripción</th><th>Acciones</th></tr></thead>
+          <tbody id="categories-table"><tr><td colspan="3" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LOANS -->
+    <div id="section-loans" class="section">
+      <div class="card">
+        <h2>Nuevo préstamo</h2>
+        <div id="loan-msg" class="msg"></div>
+        <div class="form-row">
+          <select id="loan-book"><option value="">-- Selecciona libro --</option></select>
+          <input id="loan-date" type="date">
+          <input id="loan-return" type="date">
+        </div>
+        <button class="btn btn-primary" onclick="createLoan()">Crear préstamo</button>
+      </div>
+      <div class="card">
+        <h2>Préstamos</h2>
+        <table>
+          <thead><tr><th>Libro</th><th>Fecha préstamo</th><th>Devolución prevista</th><th>Devolución real</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <tbody id="loans-table"><tr><td colspan="6" class="empty">Cargando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const API = 'http://localhost:8080/api/v1';
+  const AUTH = 'http://localhost:8080/auth';
+  let token = localStorage.getItem('lib_token') || null;
+
+  // ── AUTH ──────────────────────────────────────────────
+  async function login() {
+    const username = document.getElementById('login-user').value;
+    const password = document.getElementById('login-pass').value;
+    try {
+      const res = await fetch(`${AUTH}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      if (!res.ok) { showMsg('login-msg', 'Credenciales incorrectas', 'error'); return; }
+      const data = await res.json();
+      token = data.token;
+      localStorage.setItem('lib_token', token);
+      document.getElementById('username-display').textContent = username;
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    } catch(e) { showMsg('login-msg', 'No se puede conectar con la API. ¿Está arrancada en localhost:8080?', 'error'); }
+  }
+
+  function logout() {
+    token = null;
+    localStorage.removeItem('lib_token');
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-screen').style.display = 'block';
+  }
+
+  if (token) {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  }
+
+  // ── FETCH HELPER ──────────────────────────────────────
+  async function req(method, url, body) {
+    const opts = { method, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' } };
+    if (body) opts.body = JSON.stringify(body);
+    try {
+      const res = await fetch(url, opts);
+      if (res.status === 401) { logout(); return null; }
+      const text = await res.text();
+      return { ok: res.ok, status: res.status, data: text ? JSON.parse(text) : null };
+    } catch(e) { return { ok: false, data: { message: 'No se puede conectar con la API.' } }; }
+  }
+
+  function list(data) { return Array.isArray(data) ? data : (data?.content || []); }
+
+  function showSection(name, btn) {
+    document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('nav button').forEach(b => b.classList.remove('active'));
+    document.getElementById(`section-${name}`).classList.add('active');
+    btn.classList.add('active');
+    if (name === 'books') { loadBooks(); loadCategoriesSelect(); }
+    if (name === 'authors') loadAuthors();
+    if (name === 'categories') loadCategories();
+    if (name === 'loans') { loadLoans(); loadBooksSelect(); }
+  }
+
+  function showMsg(id, text, type) {
+    const el = document.getElementById(id);
+    el.className = `msg msg-${type}`;
+    el.textContent = text;
+    setTimeout(() => { el.className = 'msg'; el.textContent = ''; }, 4000);
+  }
+
+  function initApp() {
+    const today = new Date().toISOString().split('T')[0];
+    const nextMonth = new Date(Date.now() + 30*24*60*60*1000).toISOString().split('T')[0];
+    document.getElementById('loan-date').value = today;
+    document.getElementById('loan-return').value = nextMonth;
+    loadBooks(); loadCategoriesSelect();
+  }
+
+  // ── BOOKS ─────────────────────────────────────────────
+  async function loadBooks() {
+    const r = await req('GET', `${API}/books?size=100`);
+    if (!r) return;
+    const books = list(r.data);
+    const tb = document.getElementById('books-table');
+    if (!books.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No hay libros</td></tr>'; return; }
+    tb.innerHTML = books.map(b => `
+      <tr id="book-row-${b.id}">
+        <td><strong>${b.title}</strong></td>
+        <td>${b.isbn}</td>
+        <td>${b.publishedYear || '–'}</td>
+        <td>${b.categoryName || '–'}</td>
+        <td><span class="badge ${b.availableStock > 0 ? 'badge-available' : 'badge-unavailable'}">${b.availableStock} / ${b.totalStock}</span></td>
+        <td class="actions">
+          <button class="btn btn-warning btn-sm" onclick="toggleEditBook(${b.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteBook(${b.id})">Eliminar</button>
+        </td>
+      </tr>
+      <tr id="book-edit-${b.id}" class="edit-row">
+        <td colspan="6">
+          <div class="edit-form">
+            <input id="edit-book-title-${b.id}" value="${b.title}" placeholder="Título *">
+            <input id="edit-book-isbn-${b.id}" value="${b.isbn}" placeholder="ISBN *">
+            <input id="edit-book-year-${b.id}" value="${b.publishedYear||''}" placeholder="Año" type="number">
+            <input id="edit-book-stock-${b.id}" value="${b.totalStock}" placeholder="Stock total *" type="number">
+            <input id="edit-book-avail-${b.id}" value="${b.availableStock}" placeholder="Stock disponible *" type="number">
+            <button class="btn btn-primary btn-sm" onclick="updateBook(${b.id})">Guardar</button>
+            <button class="btn btn-sm" style="background:#eee" onclick="toggleEditBook(${b.id})">Cancelar</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function toggleEditBook(id) {
+    const row = document.getElementById(`book-edit-${id}`);
+    row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+  }
+
+  async function createBook() {
+    const stock = parseInt(document.getElementById('book-stock').value);
+    const body = {
+      title: document.getElementById('book-title').value,
+      isbn: document.getElementById('book-isbn').value,
+      publishedYear: parseInt(document.getElementById('book-year').value) || null,
+      totalStock: stock, availableStock: stock,
+      categoryId: document.getElementById('book-category').value || null
+    };
+    const r = await req('POST', `${API}/books`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('book-msg', 'Libro creado correctamente', 'success'); loadBooks(); loadBooksSelect(); }
+    else showMsg('book-msg', r.data?.message || 'Error al crear el libro', 'error');
+  }
+
+  async function updateBook(id) {
+    const body = {
+      title: document.getElementById(`edit-book-title-${id}`).value,
+      isbn: document.getElementById(`edit-book-isbn-${id}`).value,
+      publishedYear: parseInt(document.getElementById(`edit-book-year-${id}`).value) || null,
+      totalStock: parseInt(document.getElementById(`edit-book-stock-${id}`).value),
+      availableStock: parseInt(document.getElementById(`edit-book-avail-${id}`).value)
+    };
+    const r = await req('PUT', `${API}/books/${id}`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('book-msg', 'Libro actualizado correctamente', 'success'); loadBooks(); loadBooksSelect(); }
+    else showMsg('book-msg', r.data?.message || 'Error al actualizar', 'error');
+  }
+
+  async function deleteBook(id) {
+    if (!confirm('¿Eliminar este libro?')) return;
+    const r = await req('DELETE', `${API}/books/${id}`);
+    if (!r) return;
+    if (r.ok) { loadBooks(); loadBooksSelect(); }
+    else showMsg('book-msg', r.data?.message || 'No se puede eliminar el libro', 'error');
+  }
+
+  async function loadCategoriesSelect() {
+    const r = await req('GET', `${API}/categories`);
+    if (!r) return;
+    const cats = list(r.data);
+    const sel = document.getElementById('book-category');
+    sel.innerHTML = '<option value="">-- Categoría (opcional) --</option>' + cats.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+  }
+
+  async function loadBooksSelect() {
+    const r = await req('GET', `${API}/books?size=100`);
+    if (!r) return;
+    const books = list(r.data);
+    const sel = document.getElementById('loan-book');
+    sel.innerHTML = '<option value="">-- Selecciona libro --</option>' + books.map(b => `<option value="${b.id}">${b.title} (${b.availableStock} disponibles)</option>`).join('');
+  }
+
+  // ── AUTHORS ───────────────────────────────────────────
+  async function loadAuthors() {
+    const r = await req('GET', `${API}/authors`);
+    if (!r) return;
+    const authors = list(r.data);
+    const tb = document.getElementById('authors-table');
+    if (!authors.length) { tb.innerHTML = '<tr><td colspan="4" class="empty">No hay autores</td></tr>'; return; }
+    tb.innerHTML = authors.map(a => `
+      <tr id="author-row-${a.id}">
+        <td>${a.firstName}</td>
+        <td>${a.lastName}</td>
+        <td>${a.nationality || '–'}</td>
+        <td class="actions">
+          <button class="btn btn-warning btn-sm" onclick="toggleEditAuthor(${a.id})">Editar</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteAuthor(${a.id})">Eliminar</button>
+        </td>
+      </tr>
+      <tr id="author-edit-${a.id}" class="edit-row">
+        <td colspan="4">
+          <div class="edit-form">
+            <input id="edit-author-first-${a.id}" value="${a.firstName}" placeholder="Nombre *">
+            <input id="edit-author-last-${a.id}" value="${a.lastName}" placeholder="Apellidos *">
+            <input id="edit-author-nat-${a.id}" value="${a.nationality||''}" placeholder="Nacionalidad">
+            <button class="btn btn-primary btn-sm" onclick="updateAuthor(${a.id})">Guardar</button>
+            <button class="btn btn-sm" style="background:#eee" onclick="toggleEditAuthor(${a.id})">Cancelar</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  function toggleEditAuthor(id) {
+    const row = document.getElementById(`author-edit-${id}`);
+    row.style.display = row.style.display === 'table-row' ? 'none' : 'table-row';
+  }
+
+  async function createAuthor() {
+    const body = {
+      firstName: document.getElementById('author-first').value,
+      lastName: document.getElementById('author-last').value,
+      nationality: document.getElementById('author-nationality').value || null
+    };
+    const r = await req('POST', `${API}/authors`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('author-msg', 'Autor creado correctamente', 'success'); loadAuthors(); }
+    else showMsg('author-msg', r.data?.message || 'Error al crear el autor', 'error');
+  }
+
+  async function updateAuthor(id) {
+    const body = {
+      firstName: document.getElementById(`edit-author-first-${id}`).value,
+      lastName: document.getElementById(`edit-author-last-${id}`).value,
+      nationality: document.getElementById(`edit-author-nat-${id}`).value || null
+    };
+    const r = await req('PUT', `${API}/authors/${id}`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('author-msg', 'Autor actualizado correctamente', 'success'); loadAuthors(); }
+    else showMsg('author-msg', r.data?.message || 'Error al actualizar', 'error');
+  }
+
+  async function deleteAuthor(id) {
+    if (!confirm('¿Eliminar este autor?')) return;
+    const r = await req('DELETE', `${API}/authors/${id}`);
+    if (!r) return;
+    if (r.ok) loadAuthors();
+    else showMsg('author-msg', r.data?.message || 'No se puede eliminar el autor', 'error');
+  }
+
+  // ── CATEGORIES ────────────────────────────────────────
+  async function loadCategories() {
+    const r = await req('GET', `${API}/categories`);
+    if (!r) return;
+    const cats = list(r.data);
+    const tb = document.getElementById('categories-table');
+    if (!cats.length) { tb.innerHTML = '<tr><td colspan="3" class="empty">No hay categorías</td></tr>'; return; }
+    tb.innerHTML = cats.map(c => `
+      <tr>
+        <td><strong>${c.name}</strong></td>
+        <td>${c.description || '–'}</td>
+        <td class="actions">
+          <button class="btn btn-danger btn-sm" onclick="deleteCategory(${c.id})">Eliminar</button>
+        </td>
+      </tr>`).join('');
+  }
+
+  async function createCategory() {
+    const body = { name: document.getElementById('cat-name').value, description: document.getElementById('cat-desc').value || null };
+    const r = await req('POST', `${API}/categories`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('category-msg', 'Categoría creada correctamente', 'success'); loadCategories(); loadCategoriesSelect(); }
+    else showMsg('category-msg', r.data?.message || 'Error al crear la categoría', 'error');
+  }
+
+  async function deleteCategory(id) {
+    if (!confirm('¿Eliminar esta categoría?')) return;
+    const r = await req('DELETE', `${API}/categories/${id}`);
+    if (!r) return;
+    if (r.ok) { loadCategories(); loadCategoriesSelect(); }
+    else showMsg('category-msg', r.data?.message || 'No se puede eliminar: tiene libros asignados', 'error');
+  }
+
+  // ── LOANS ─────────────────────────────────────────────
+  async function loadLoans() {
+    const r = await req('GET', `${API}/loans`);
+    if (!r) return;
+    const loans = list(r.data);
+    const tb = document.getElementById('loans-table');
+    if (!loans.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">No hay préstamos</td></tr>'; return; }
+    tb.innerHTML = loans.map(l => `
+      <tr>
+        <td>${l.bookTitle || l.bookId}</td>
+        <td>${l.loanDate}</td>
+        <td>${l.expectedReturnDate}</td>
+        <td>${l.actualReturnDate || '–'}</td>
+        <td><span class="badge badge-${(l.status||'').toLowerCase()}">${l.status}</span></td>
+        <td class="actions">
+          ${l.status !== 'RETURNED' ? `<button class="btn btn-success btn-sm" onclick="returnLoan(${l.id})">Devolver</button>` : ''}
+        </td>
+      </tr>`).join('');
+  }
+
+  // El campo <input type="date"> da yyyy-MM-dd; la API espera dd-MM-yyyy
+  function toApiDate(iso) {
+    if (!iso) return null;
+    const [y, m, d] = iso.split('-');
+    return `${d}-${m}-${y}`;
+  }
+
+  async function createLoan() {
+    const body = {
+      bookId: parseInt(document.getElementById('loan-book').value) || null,
+      loanDate: toApiDate(document.getElementById('loan-date').value),
+      expectedReturnDate: toApiDate(document.getElementById('loan-return').value)
+    };
+    const r = await req('POST', `${API}/loans`, body);
+    if (!r) return;
+    if (r.ok) { showMsg('loan-msg', 'Préstamo creado correctamente', 'success'); loadLoans(); loadBooksSelect(); loadBooks(); }
+    else showMsg('loan-msg', r.data?.message || 'Error al crear el préstamo', 'error');
+  }
+
+  async function returnLoan(id) {
+    if (!confirm('¿Marcar este préstamo como devuelto?')) return;
+    const r = await req('PUT', `${API}/loans/${id}/return`);
+    if (!r) return;
+    if (r.ok) { loadLoans(); loadBooks(); loadBooksSelect(); }
+    else showMsg('loan-msg', r.data?.message || 'Error al devolver el préstamo', 'error');
+  }
+</script>
+</body>
+</html>
